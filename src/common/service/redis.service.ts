@@ -15,9 +15,9 @@ class redisService {
         })
     }
     async connect() {
-  this.client.connect
-  console.log("Connection to Redis successful")
-};
+    await this.client.connect();
+    console.log("Connection to Redis successful");
+}
 
 
 

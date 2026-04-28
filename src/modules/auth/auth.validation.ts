@@ -1,11 +1,17 @@
 import * as z from "zod";
 import { GenderEnum } from "../../common/enum/user.enum";
 
+
+export const resendOtpSchema = {
+    body:   z.strictObject({
+            email: z.email("Invalid email address"),
+        })
+ }  
+
+
 export const signInSchema = {
-    body:   z.object({
-            email: z.string().email("Invalid email address"),
+    body:   resendOtpSchema.body.safeExtend({
             password: z.string()
-            
         })
  }   
 export const signUpSchema = {
@@ -39,5 +45,4 @@ export const confirmEmailSchema = {
  }        
 
      
-
 

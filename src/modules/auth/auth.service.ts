@@ -1,4 +1,4 @@
-import { SignupDto, ConfirmEmailDto, SignInDto } from "./auth.dto";
+import { SignupDto, ConfirmEmailDto, SignInDto, resendOtpDto } from "./auth.dto";
 import { Request, Response, NextFunction } from "express";
 import userModel, { IUser } from "../../DB/models/user.model";
 import BaseRepository from "../../DB/repositories/base.repository";
@@ -19,6 +19,7 @@ import TokenService from "../../common/service/token.service";
 import { OAuth2Client } from "google-auth-library";
 import redisService from "../../common/service/redis.service";
 import { IRequest } from "../../common/middleware/authentication";
+import tokenService from "../../common/service/token.service";
 
 class AuthService {
 
@@ -27,6 +28,47 @@ class AuthService {
     private readonly TokenService = TokenService;
 
     constructor() {}
+    
+    sendEmailOtp = async ({ email, subject }:{email:string,subject:EventEnum.confirmEmail}) => {
+  const isBlocked = await this._redisService.ttl(this._redisService.blocked_otp_key(email));
+  if (isBlocked && isBlocked > 0) {
+    throw new Error(`you blocked please try again after ${isBlocked} seconds`);
+  }
+
+  const ttlOtp = await this._redisService.ttl(this._redisService.otp_key({ email, subject}));
+  if (ttlOtp && ttlOtp > 0) {
+    throw new Error(
+      `you already have otp not expired yet please try again after ${ttlOtp} seconds`
+    );
+  }
+
+  if ((await this._redisService.getValue(this._redisService.max_otp_key( email))) >= 3) {
+    await this._redisService.setValue({
+      key: this._redisService.blocked_otp_key(email),
+      value: "1",
+      ttl: 15 * 60,
+    });
+    throw new Error("you exceed maximum number of trials");
+  }
+
+  const otp = await generateOTP();
+
+  eventEmitter.emit(EventEnum.confirmEmail, async ()=>{
+    await sendEmail({
+        to: email,
+        subject:"Welcome to Social App",
+        html:EmailTemplate(otp)
+    })
+    })
+
+  await this._redisService.setValue({
+    key: this._redisService.otp_key({ email, subject }),
+    value: otp.toString(),
+    ttl: 60 * 2,
+  });
+
+  await this._redisService.incr(this._redisService.max_otp_key( email ));
+};
 
     signUp = async (req: Request, res: Response, next: NextFunction) => {
         try {
@@ -122,8 +164,7 @@ class AuthService {
                     email,
                     userName: name,
                     confirmed: true,
-                    provider: ProviderEnum.google,
-                    profilePicture: picture
+                    provider: ProviderEnum.google
                 } as any);
             }
 
@@ -146,48 +187,54 @@ class AuthService {
     };
 
     confirmEmail = async (req: Request, res: Response, next: NextFunction) => {
-        try {
-            const { code, email } = req.body;
+    try {
+        const { code, email } = req.body;
 
-            const otpValue = await this._redisService.getValue(
-                this._redisService.otp_key({ email, subject: EventEnum.confirmEmail })
-            );
+        const otpValue = await this._redisService.getValue(
+            this._redisService.otp_key({
+                email,
+                subject: EventEnum.confirmEmail
+            })
+        );
 
-            if (!otpValue) {
-                throw new AppError("OTP expired or invalid", 400);
-            }
-
-            if (code.trim() !== String(otpValue).trim()) {
-                throw new AppError("Invalid OTP", 400);
-            }
-
-            const user = await this._userModel.findOneAndUpdate({
-                filter: {
-                    email,
-                    confirmed: { $exists: false },
-                    provider: ProviderEnum.local
-                },
-                update: { confirmed: true },
-                options: { new: true }
-            });
-
-            if (!user) {
-                throw new AppError("User not found or already confirmed", 404);
-            }
-
-            await  this._redisService.deleteKey(
-                 this._redisService.otp_key({ email, subject: EventEnum.confirmEmail })
-            );
-
-            return successResponse({
-                res,
-                message: "Email confirmed successfully",
-                data: { user }
-            });
-
-        } catch (error) {
-            next(error);
+        if (!otpValue) {
+            throw new AppError("OTP expired or invalid", 400);
         }
+
+        if (code.trim() !== String(otpValue).trim()) {
+            throw new AppError("Invalid OTP", 400);
+        }
+
+        const user = await this._userModel.findOneAndUpdate({
+    filter: {
+        email,
+        confirmed: false,
+        provider: ProviderEnum.local
+    },
+    update: { confirmed: true },
+    options: { new: true }
+});
+
+        if (!user) {
+            throw new AppError("User not found or already confirmed", 404);
+        }
+
+        await this._redisService.deleteKey(
+            this._redisService.otp_key({
+                email,
+                subject: EventEnum.confirmEmail
+            })
+        );
+
+        return successResponse({
+            res,
+            message: "Email confirmed successfully",
+            data: { user }
+        });
+
+    } catch (error) {
+        next(error);
+    }
     };
 
     signIn = async (req: Request, res: Response, next: NextFunction) => {
@@ -361,8 +408,32 @@ class AuthService {
     } catch (error) {
         next(error);
     }
-
 };
+   resendOtp = async (req:IRequest, res: Response, next: NextFunction) => {
+
+  const { email } : resendOtpDto = req.body;
+
+  const user = await this._userModel.findOne({
+    filter: {
+      email,
+      confirmed:{$exists:false},
+      provider: ProviderEnum.system,
+    },
+  });
+
+  if (!user) {
+    throw new AppError("User does not exist",500);
+  }
+  
+  await this.sendEmailOtp({ email ,subject:EventEnum.confirmEmail });
+
+  return successResponse({
+    res,
+    message: "OTP resent successfully"
+  });
+};
+
+
 }
 
 export default new AuthService();

@@ -1,5 +1,5 @@
 import * as z from "zod";
-import { confirmEmailSchema, signInSchema, signUpSchema } from "./auth.validation";
+import { confirmEmailSchema, resendOtpSchema, signInSchema, signUpSchema } from "./auth.validation";
 
 
 // export interface signUpType {
@@ -20,3 +20,4 @@ export type ConfirmEmailDto = z.infer<typeof confirmEmailSchema.body>;
 export type SignInDto = z.infer<typeof signInSchema.body>;
 
 
+export type resendOtpDto = z.infer<typeof resendOtpSchema.body>;
