@@ -44,5 +44,22 @@ export const confirmEmailSchema = {
         })
  }        
 
-     
+export const forgetPasswordSchema = {
+    body: z.object({
+        email: z.string().email("Invalid email address")
+    })
+};
+
+export const updatePasswordSchema = {
+    body: z.object({
+        oldPassword: z.string().min(6, "Old password must be at least 6 characters"),
+        password: z.string().min(6, "Password must be at least 6 characters"),
+        cPassword: z.string()
+    }).refine((data) => data.password === data.cPassword, {
+        message: "Passwords don't match",
+        path: ["cPassword"]
+    })
+};
+
+
 

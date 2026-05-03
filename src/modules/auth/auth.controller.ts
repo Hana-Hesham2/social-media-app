@@ -10,17 +10,20 @@ authRouter.post("/signup", Validation(UV.signUpSchema), authService.signUp);
 
 authRouter.post("/signin", Validation(UV.signInSchema), authService.signIn);
 
-authRouter.post("/google-signup", authService.signupWithGmail);
+authRouter.post("/signup/gmail", authService.signupWithGmail);
 
 authRouter.patch("/confirm-email", Validation(UV.confirmEmailSchema), authService.confirmEmail);
 
-authRouter.post("/forget-password", authService.forgetPassword);
+authRouter.post("/forget-password",Validation(UV.forgetPasswordSchema),authService.forgetPassword);
 
-authRouter.patch("/update-password", authentication, authService.updatePassword);
+authRouter.patch("/update-password",authentication,Validation(UV.updatePasswordSchema),authService.updatePassword);
 
 authRouter.post("/logout", authentication, authService.logout);
 
 authRouter.patch("/resend-otp", Validation(UV.resendOtpSchema), authService.resendOtp);
+
+authRouter.get("/profile", authentication, authService.getProfile);
+
 
 // authRouter.post("/reset-password", authService.resetPassword);
 // authRouter.post("/verify-otp", authService.verifyOTP);

@@ -4,7 +4,7 @@ import userModel, { IUser } from "../../DB/models/user.model";
 import BaseRepository from "../../DB/repositories/base.repository";
 import { HydratedDocument } from "mongoose";
 import { AppError } from "../../common/utils/globalErrorHandler";
-import { ProviderEnum } from "../../common/enum/user.enum";
+import { ProviderEnum, RoleEnum } from "../../common/enum/user.enum";
 import UserRepository from "../../DB/repositories/user.repository";
 import { encrypt } from "../../common/utils/security/encrypt";
 import { Compare, Hash } from "../../common/utils/security/hash";
@@ -14,7 +14,7 @@ import { eventEmitter } from "../../common/utils/email/email.events";
 import { EventEnum } from "../../common/enum/event.enum";
 import { successResponse } from "../../common/utils/security/response.success";
 import { randomUUID } from "crypto";
-import { ACCESS_SECRET_KEY, GOOGLE_CLIENT_ID, REFRESH_SECRET_KEY } from "../../config/config.service";
+import { ACCESS_SECRET_KEY_ADMIN, ACCESS_SECRET_KEY_USER, GOOGLE_CLIENT_ID, REFRESH_SECRET_KEY_ADMIN, REFRESH_SECRET_KEY_USER } from "../../config/config.service";
 import TokenService from "../../common/service/token.service";
 import { OAuth2Client } from "google-auth-library";
 import redisService from "../../common/service/redis.service";
@@ -94,15 +94,15 @@ class AuthService {
             const otp = generateOTP();
 
             await this._redisService.setValue({
-                key:  this._redisService.otp_key({ email, subject: EventEnum.confirmEmail }),
-                value: otp.toString(),
-                ttl: 60 * 30
+                key: this._redisService.otp_key({ email, subject: EventEnum.confirmEmail }),
+                value: otp.toString(),   
+                ttl: 60 * 1
             });
 
             await this._redisService.setValue({
                 key:  this._redisService.max_otp_key(email),
                 value: "1",
-                ttl: 60 * 30
+                ttl: 60 * 1 
             });
 
             await sendEmail({
@@ -112,15 +112,17 @@ class AuthService {
             });
 
             const user = await this._userModel.create({
-                firstName,
-                lastName,
-                email,
-                password: Hash({ plainText: password.toString() }),
-                age,
-                gender,
-                address,
-                phone: phone ? encrypt(phone) : undefined
-            } as Partial<IUser>);
+    firstName,
+    lastName,
+    email,
+    password: Hash({ plainText: password.toString() }),
+    age,
+    gender,
+    address,
+    phone: phone ? encrypt(phone) : undefined,
+    confirmed: false,                 
+    provider: ProviderEnum.local      
+} as Partial<IUser>);
 
             return res.status(201).json({
                 message: "User signed up successfully",
@@ -168,9 +170,9 @@ class AuthService {
                 } as any);
             }
 
-            const access_token = this.TokenService.GenerateToken({
+            const access_token = tokenService.GenerateToken({
                 payload: { id: user._id, email: user.email },
-                secret_key: process.env.ACCESS_SECRET_KEY!,
+                secret_key: user.role==RoleEnum.USER ? ACCESS_SECRET_KEY_USER : ACCESS_SECRET_KEY_ADMIN,
                 options: {
                     expiresIn: "1h"
                 }
@@ -201,18 +203,19 @@ class AuthService {
             throw new AppError("OTP expired or invalid", 400);
         }
 
-        if (code.trim() !== String(otpValue).trim()) {
-            throw new AppError("Invalid OTP", 400);
-        }
-
-        const user = await this._userModel.findOneAndUpdate({
+       if (code.trim() !== String(otpValue).trim()) {
+        throw new AppError("Invalid OTP", 400);
+    }
+    console.log({ email, otpValue });
+     
+    const user = await this._userModel.findOneAndUpdate({
     filter: {
         email,
-        confirmed: false,
-        provider: ProviderEnum.local
+        provider: ProviderEnum.local,
+        confirmed: { $ne: true }   
     },
     update: { confirmed: true },
-    options: { new: true }
+    options: { returnDocument: "after" }
 });
 
         if (!user) {
@@ -231,6 +234,7 @@ class AuthService {
             message: "Email confirmed successfully",
             data: { user }
         });
+        console.log(user)
 
     } catch (error) {
         next(error);
@@ -265,7 +269,7 @@ class AuthService {
 
             const access_token = this.TokenService.GenerateToken({
                 payload: { id: user._id, email: user.email },
-                secret_key: ACCESS_SECRET_KEY,
+                secret_key: user.role==RoleEnum.USER ? ACCESS_SECRET_KEY_USER : ACCESS_SECRET_KEY_ADMIN,
                 options: {
                     expiresIn: 60 * 30,
                     jwtid: uuid
@@ -274,7 +278,7 @@ class AuthService {
 
             const refresh_token = this.TokenService.GenerateToken({
                 payload: { id: user._id, email: user.email },
-                secret_key: REFRESH_SECRET_KEY,
+                secret_key: user.role==RoleEnum.USER ? REFRESH_SECRET_KEY_USER : REFRESH_SECRET_KEY_ADMIN,
                 options: {
                     expiresIn: "1y",
                     jwtid: uuid
@@ -291,6 +295,11 @@ class AuthService {
             next(error);
         }
     };
+
+    getProfile = async (req: IRequest, res: Response, next: NextFunction) => {
+
+     successResponse({ res, message: "Done", data: req.user })
+};
 
     forgetPassword = async (req: Request, res: Response, next: NextFunction) => {
         try {
@@ -416,8 +425,8 @@ class AuthService {
   const user = await this._userModel.findOne({
     filter: {
       email,
-      confirmed:{$exists:false},
-      provider: ProviderEnum.system,
+      provider: ProviderEnum.local,
+      confirmed: { $ne: true }
     },
   });
 
@@ -432,7 +441,6 @@ class AuthService {
     message: "OTP resent successfully"
   });
 };
-
 
 }
 

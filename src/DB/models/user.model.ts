@@ -45,7 +45,7 @@ const userSchema = new mongoose.Schema<IUser>({
     },
     password: {
          type: String,
-         required: true,
+         required: function(): boolean { return this.provider == ProviderEnum.local ? true : false },
          minlength: 6,
          maxlength: 100
     },
@@ -56,7 +56,7 @@ const userSchema = new mongoose.Schema<IUser>({
     },
     age: {
          type: Number,
-         required: true,
+         required: function(): boolean { return this.provider == ProviderEnum.local ? true : false },
          min: 13,
          max: 90
         },

@@ -1,4 +1,4 @@
-import jwt, { PrivateKey, Secret } from "jsonwebtoken";
+import jwt, { JwtPayload, PrivateKey, Secret } from "jsonwebtoken";
 
 class TokenService {
   constructor (){ }
@@ -18,6 +18,8 @@ class TokenService {
 }) => {
   return jwt.verify(token, secret_key, options);
 };
-
+ DecodeToken = (token: string): JwtPayload | null => {
+    return jwt.decode(token) as JwtPayload;
+  };
 }
 export default new TokenService();

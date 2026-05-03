@@ -11,6 +11,9 @@ import authRouter from "./modules/auth/auth.controller";
 import { checkConnectionDB } from "./DB/connectionDB";
 import { connect } from "node:http2";
 import redisService from "./common/service/redis.service";
+import uploadRouter from "./modules/upload/uplaod.controller";
+
+
 const app:express.Application=express();
 const port:number =Number(PORT);
 
@@ -44,6 +47,7 @@ const bootstrap = () => {
     redisService.connect()
 
     app.use("/auth",authRouter)
+    app.use("/api/upload", uploadRouter);
 
     app.use((req:express.Request,res:express.Response,next:express.NextFunction)=>{
   throw new AppError(`URL ${req.originalUrl} not found`,404)})
