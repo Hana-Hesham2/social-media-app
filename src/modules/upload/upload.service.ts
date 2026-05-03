@@ -32,9 +32,10 @@ export const uploadSingleFile = async (req: Request, res: Response): Promise<voi
       },
     });
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : "Unknown error";
-    res.status(500).json({ success: false, message });
-  }
+  console.log("UPLOAD ERROR:", error);
+  const message = error instanceof Error ? error.message : String(error);
+  res.status(500).json({ success: false, message, error });
+}
 };
 
 export const uploadLargeFileHandler = async (req: Request, res: Response): Promise<void> => {
@@ -58,9 +59,10 @@ export const uploadLargeFileHandler = async (req: Request, res: Response): Promi
       },
     });
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : "Unknown error";
-    res.status(500).json({ success: false, message });
-  }
+  console.log("UPLOAD ERROR:", error);
+  const message = error instanceof Error ? error.message : String(error);
+  res.status(500).json({ success: false, message, error });
+}
 };
 
 export const uploadMultipleFiles = async (req: Request, res: Response): Promise<void> => {
@@ -83,9 +85,10 @@ export const uploadMultipleFiles = async (req: Request, res: Response): Promise<
       })),
     });
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : "Unknown error";
-    res.status(500).json({ success: false, message });
-  }
+  console.log("UPLOAD ERROR:", error);
+  const message = error instanceof Error ? error.message : String(error);
+  res.status(500).json({ success: false, message, error });
+}
 };
 
 export const getFileHandler = async (req: Request, res: Response): Promise<void> => {
@@ -104,9 +107,10 @@ export const getFileHandler = async (req: Request, res: Response): Promise<void>
     const result = await getFile(publicId, resourceType);
     res.status(200).json({ success: true, message: "File info retrieved", data: result });
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : "Unknown error";
-    res.status(500).json({ success: false, message });
-  }
+  console.log("UPLOAD ERROR:", error);
+  const message = error instanceof Error ? error.message : String(error);
+  res.status(500).json({ success: false, message, error });
+}
 };
 
 export const downloadFileHandler = async (req: Request, res: Response): Promise<void> => {
@@ -127,9 +131,10 @@ export const downloadFileHandler = async (req: Request, res: Response): Promise<
     const downloadUrl = getDownloadUrl(publicId, resourceType, attachmentName);
     res.status(200).json({ success: true, message: "Download URL generated", data: { downloadUrl } });
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : "Unknown error";
-    res.status(500).json({ success: false, message });
-  }
+  console.log("UPLOAD ERROR:", error);
+  const message = error instanceof Error ? error.message : String(error);
+  res.status(500).json({ success: false, message, error });
+}
 };
 
 export const deleteFileHandler = async (req: Request, res: Response): Promise<void> => {
@@ -152,9 +157,10 @@ export const deleteFileHandler = async (req: Request, res: Response): Promise<vo
     }
     res.status(200).json({ success: true, message: "File deleted successfully" });
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : "Unknown error";
-    res.status(500).json({ success: false, message });
-  }
+  console.log("UPLOAD ERROR:", error);
+  const message = error instanceof Error ? error.message : String(error);
+  res.status(500).json({ success: false, message, error });
+}
 };
 
 export const deleteFolderHandler = async (req: Request, res: Response): Promise<void> => {
@@ -171,7 +177,8 @@ export const deleteFolderHandler = async (req: Request, res: Response): Promise<
       data: result,
     });
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : "Unknown error";
-    res.status(500).json({ success: false, message });
-  }
+  console.log("UPLOAD ERROR:", error);
+  const message = error instanceof Error ? error.message : String(error);
+  res.status(500).json({ success: false, message, error });
+}
 };

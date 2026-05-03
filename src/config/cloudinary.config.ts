@@ -1,7 +1,8 @@
 import { v2 as cloudinary } from "cloudinary";
 import dotenv from "dotenv";
+import path from "path";
 
-dotenv.config();
+dotenv.config({ path: path.resolve(process.cwd(), ".env.development") });
 
 const cloudName = process.env["CLOUDINARY_CLOUD_NAME"];
 const apiKey = process.env["CLOUDINARY_API_KEY"];
