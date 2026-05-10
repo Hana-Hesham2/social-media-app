@@ -17,7 +17,6 @@ class BaseRepository<TDocument>
         return true;
     }
 
-
     async create(
         data: Partial<TDocument>
     ): Promise<HydratedDocument<TDocument>> {
@@ -51,7 +50,6 @@ class BaseRepository<TDocument>
             filter: QueryFilter<TDocument>,
             projection?: ProjectionType<TDocument>,
             options?:QueryOptions<TDocument>
-        
         }):
             Promise<HydratedDocument<TDocument>[] | []> {
             return this.model.find(filter, projection)
@@ -71,7 +69,6 @@ class BaseRepository<TDocument>
         id: Types.ObjectId,
         update: UpdateQuery<TDocument>,
         options?: QueryOptions<TDocument>
-        
     }): Promise<HydratedDocument<TDocument> | null> {
         return this.model.findByIdAndUpdate(id, update, { new: true, ...options });
     }
@@ -101,15 +98,26 @@ class BaseRepository<TDocument>
         return this.model.findOneAndDelete(filter, options);
     }
 
-    // findByIdAndDelete(id: Types.ObjectId): Promise<HydratedDocument<TDocument> | null> {
-    //     return this.model.findByIdAndDelete(id);
-    // }
+    async updateMany({
+        filter,
+        update,
+    }:
+    {
+        filter: QueryFilter<TDocument>,
+        update: UpdateQuery<TDocument>,
+    }): Promise<void> {
+        await this.model.updateMany(filter, update);
+    }
 
-    // deleteById(id: Types.ObjectId): Promise<HydratedDocument<TDocument> | null> {
-    //     return this.model.findByIdAndDelete(id);
-    // }
-
-
-
+    
+    async deleteMany({
+        filter,
+    }:
+    {
+        filter: QueryFilter<TDocument>,
+    }): Promise<void> {
+        await this.model.deleteMany(filter);
+    }
 }
+
 export default BaseRepository;

@@ -24,6 +24,9 @@ authRouter.patch("/resend-otp", Validation(UV.resendOtpSchema), authService.rese
 
 authRouter.get("/profile", authentication, authService.getProfile);
 
+authRouter.delete("/soft", authentication, authService.softDeleteUser);
+authRouter.delete("/hard", authentication, authService.hardDeleteUser);
+
 
 // authRouter.post("/reset-password", authService.resetPassword);
 // authRouter.post("/verify-otp", authService.verifyOTP);

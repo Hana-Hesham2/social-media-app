@@ -18,7 +18,11 @@ export interface IUser {
     confirmed?: boolean,
     createdAt: Date,
     updatedAt: Date,
-    provider?: ProviderEnum
+    provider?: ProviderEnum,
+    fcmToken?: string;
+    isDeleted?: boolean;
+    deletedAt?: Date;
+    profilePicture?: string;
 
 }
 
@@ -85,7 +89,23 @@ const userSchema = new mongoose.Schema<IUser>({
         type: String,
          enum: Object.values(ProviderEnum),
         default: ProviderEnum.system
-    }
+    },
+    fcmToken: {
+  type: String,
+  default: null
+},
+isDeleted: {
+  type: Boolean,
+  default: false
+},
+deletedAt: {
+  type: Date,
+  default: null
+},
+profilePicture: {
+  type: String,
+  default: null
+}
 },{
     timestamps: true,
     strictQuery: true,
@@ -99,6 +119,31 @@ userSchema.virtual("userName").get(function(this: IUser) {
     return this.firstName + " " + this.lastName;
 }).set(function (val: string) {
     this.set ({firstName: val.split(" ")[0],lastName: val.split(" ")[1]}) });
+
+userSchema.pre(/^find/, function () {
+  const query = this as mongoose.Query<unknown, IUser>;
+  const conditions = query.getQuery();
+  if (conditions["paranoid"] === false) {
+    const { paranoid, ...rest } = conditions;
+    query.setQuery(rest);
+  } else {
+    query.setQuery({ ...conditions, isDeleted: false });
+  }
+});
+
+userSchema.pre("findOneAndDelete", async function () {
+  const user = await this.model.findOne(this.getQuery());
+  if (user) {
+    await mongoose.model("Post").updateMany(
+      { createdBy: user._id },
+      { isDeleted: true, deletedAt: new Date() }
+    );
+    await mongoose.model("Comment").updateMany(
+      { createdBy: user._id },
+      { isDeleted: true, deletedAt: new Date() }
+    );
+  }
+});
 
 
 const userModel = mongoose.models.User || mongoose.model<IUser>("User", userSchema);

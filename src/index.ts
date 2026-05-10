@@ -1,4 +1,4 @@
-import bootstrap from "./app.controller.js";
+import bootstrap from "./app.controller";
 
 
 bootstrap()

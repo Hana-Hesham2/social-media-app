@@ -442,6 +442,35 @@ class AuthService {
   });
 };
 
+softDeleteUser = async (req: IRequest, res: Response, next: NextFunction) => {
+  try {
+    const userId = req.user!._id;
+
+    await this._userModel.findByIdAndUpdate({
+      id: userId,
+      update: { isDeleted: true, deletedAt: new Date() },
+    });
+
+    return successResponse({ res, message: "Account soft deleted successfully" });
+  } catch (error) {
+    next(error);
+  }
+};
+
+hardDeleteUser = async (req: IRequest, res: Response, next: NextFunction) => {
+  try {
+    const userId = req.user!._id;
+
+    await this._userModel.findOneAndDelete({
+      filter: { _id: userId },
+    });
+
+    return successResponse({ res, message: "Account permanently deleted" });
+  } catch (error) {
+    next(error);
+  }
+};
+
 }
 
 export default new AuthService();
